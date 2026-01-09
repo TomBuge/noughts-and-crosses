@@ -11,10 +11,15 @@
     <div class="header">
         <div class="title">Noughts and Crosses</div>
         <form action="" class="player-names">
-            <label for="player1">Player 1</label>
-            <input type="text" id="player1" name="player1" required>
-            <label for="player2">Player 2</label>
-            <input type="text" id="player2" name="player2" required>
+            <div>
+                <label for="player1">Player 1</label>
+                <input type="text" id="player1" name="player1" required>
+            </div>
+            <div>
+                <label for="player2">Player 2</label>
+                <input type="text" id="player2" name="player2" required>
+            </div>
+            
             <button type="submit" class ="play-button">Play!</button>
         </form>
         <div class="score">SCORE</div>
@@ -23,6 +28,9 @@
     <div class="main">
         <div class="game-board"></div>
     </div>
-    <div class="footer"></div>
+    <div class="footer">
+        <button class="new-game">New Game</button>
+    </div>
+    
 </body>
 </html>
