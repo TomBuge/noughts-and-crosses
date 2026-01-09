@@ -10,24 +10,29 @@ function createPlayer(name, playerNumber) {
     const getScore = () => score;
     const giveScore = () => score++;
 
-    return {name, marker, getScore, giveScore}
+    return {name, marker, getScore, giveScore,}
 }
 
-
+const displayController = (player1, player2, message) => {
+    const score = document.querySelector(".score");
+    const messageDisplay = document.querySelector(".messages")
+    score.textContent = `${player1.name}: ${player1.getScore()}.  ${player2.name}: ${player2.getScore()}` 
+    console.log(`${player1.name}: ${player1.getScore()}.  ${player2.name}: ${player2.getScore()}`)
+    messageDisplay.textContent = message;
+}
 
 
 function createGameBoard (player1, player2, playerTurn) {
     const gameBoard = [ "", "", "", "", "", "", "", "", ""];
-    
-
-    const displayController = () => {
-        console.log(`${player1.name}: ${player1.getScore()}.  ${player2.name}: ${player2.getScore()}`)
-    }
-
     const getPlayerTurn = () => playerTurn;
-
-
     const getGameBoard = () => [...gameBoard];
+    const getPlayer1 = () => player1;
+    const getPlayer2 = () => player2;
+    
+    const goesFirst = (p1, p2) => Math.random() < 0.5 ? p1: p2; 
+
+    const setPlayerTurn = (player) => playerTurn = player;
+
 
     const turnCounter = (player) => {
         if (player.marker === "X") {
@@ -43,16 +48,19 @@ function createGameBoard (player1, player2, playerTurn) {
     function playTurn(userInput, player) {
         if (gameBoard[userInput] !== "") {
             console.log("square already used!Choose again");
+            return false;
         }
         else {   
         player.marker === 'X' ? gameBoard[userInput] = 'X' : gameBoard[userInput] = '0';
         console.log(gameBoard);
-        rules(player);
+        return rules(player);
         }
     }
 
     const rules = (player) => {
         const board = gameBoard;
+        let message = "";
+        
         if ((board[0] === "X" && board[1] === "X" && board[2] === "X")
         ||  (board[3] === "X" && board[4] === "X" && board[5] === "X")
         ||  (board[6] === "X" && board[7] === "X" && board[8] === "X") 
@@ -61,9 +69,12 @@ function createGameBoard (player1, player2, playerTurn) {
         ||  (board[2] === "X" && board[5] === "X" && board[8] === "X") 
         ||  (board[0] === "X" && board[4] === "X" && board[8] === "X") 
         ||  (board[6] === "X" && board[4] === "X" && board[2] === "X")) {
-            console.log(`Game Over! ${player.name} wins!`)
+
+            message = `Game Over! ${player.name} wins!`;
             if (player.marker === 'X') player.giveScore();
-            displayController();
+            displayController(getPlayer1(), getPlayer2(), message);
+            GameController.startNewGame(player1, player2, player2);
+            return true;  
         } 
 
         if ((board[0] === "0" && board[1] === "0" && board[2] === "0")
@@ -74,17 +85,20 @@ function createGameBoard (player1, player2, playerTurn) {
         ||  (board[2] === "0" && board[5] === "0" && board[8] === "0") 
         ||  (board[0] === "0" && board[4] === "0" && board[8] === "0") 
         ||  (board[6] === "0" && board[4] === "0" && board[2] === "0")) {
-            console.log(`Game Over! ${player.name} wins!`)
+           
+            message = `Game Over! ${player.name} wins!`;
             if (player.marker === '0') player.giveScore();
-            displayController();
+            displayController(getPlayer1(), getPlayer2(), message);
+            GameController.startNewGame(player1, player2, player2);
+            return true;
         }
+        return false;
     }
 
-    return {getGameBoard, playTurn, rules, displayController, turnCounter, getPlayerTurn};
+    return {getGameBoard, playTurn, rules, turnCounter, getPlayerTurn, getPlayer1, getPlayer2, goesFirst, setPlayerTurn};
 }
 
 const displayGameBoard = (gameBoard) => {
-
     const board = document.querySelector('.game-board');
     board.innerHTML = "";
 
@@ -106,11 +120,13 @@ form.addEventListener('submit', (e) => {
     const p1 = createPlayer(document.getElementById('player1').value, 1);
     const p2 = createPlayer(document.getElementById('player2').value, 2);
 
-    const goesFirst = Math.random() < 0.5 ? p1: p2; 
+    const newGame = GameController.startNewGame(p1, p2, p1);
+    const goesFirst = newGame.goesFirst(p1, p2);
+    newGame.setPlayerTurn(goesFirst);
 
     console.log(p1.name);
     console.log(p2.name);
-    GameController.startNewGame(p1, p2, goesFirst);
+    
 
     const message = document.querySelector('.messages');
     message.textContent = `${goesFirst.name} goes first!`;
@@ -131,11 +147,15 @@ const GameController = (() => {
     return {startNewGame, getActiveGame};
 })();
 
-const board = document.querySelector('.game-board');
+
+const gameBoardClickListener = (() => {
+
+    const board = document.querySelector('.game-board');
 
     board.addEventListener('click', (e) => {
 
         if (e.target.classList.contains('square')) {
+            
             const index = e.target.id;
             const activeGame = GameController.getActiveGame();
             const message = document.querySelector('.messages');
@@ -144,7 +164,8 @@ const board = document.querySelector('.game-board');
             }
             else {
                 let player = activeGame.getPlayerTurn();
-                activeGame.playTurn(index, player);
+                const isGameOver = activeGame.playTurn(index, player);
+                if (isGameOver) return;
                 activeGame.turnCounter(player); 
                 displayGameBoard(activeGame.getGameBoard());
                 console.log(activeGame.getPlayerTurn());
@@ -152,13 +173,14 @@ const board = document.querySelector('.game-board');
         }
             
     })
-
+})();
 
 const p1Default = createPlayer("player 1" , 1);
 const p2Default = createPlayer("Player 2", 2);
 
 const setBoard = GameController.startNewGame(p1Default, p2Default, p1Default);
 console.log(GameController.getActiveGame().getPlayerTurn().name)
+
 
 
 
