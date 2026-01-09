@@ -16,25 +16,27 @@ function createPlayer(name, playerNumber) {
 
 
 
-function createGameBoard (player1, player2) {
-    const gameBoard = [ "X", "", "X", "", "", "", "", "", ""];
-    let turn = "";
-    console.log(gameBoard);
+function createGameBoard (player1, player2, playerTurn) {
+    const gameBoard = [ "", "", "", "", "", "", "", "", ""];
+    
 
     const displayController = () => {
         console.log(`${player1.name}: ${player1.getScore()}.  ${player2.name}: ${player2.getScore()}`)
     }
 
-    const getTurn = () => turn;
+    const getPlayerTurn = () => playerTurn;
+
 
     const getGameBoard = () => [...gameBoard];
 
-    const turnCounter = (marker = "") => {
-        if (marker === "") turn = "";
-        else {
-        turn = (marker === "X") ? "0" : "X";
-        console.log(`it\s ${turn}'s turn`); }
-        return turn;
+    const turnCounter = (player) => {
+        if (player.marker === "X") {
+            playerTurn = player2;
+            console.log(`first one worked and player2 marker is ${player2.marker}`)
+        } else {
+            playerTurn = player1;
+            console.log(`second one worked and player1 marker is ${player1.marker}`)
+        }
     }
 
     
@@ -42,14 +44,10 @@ function createGameBoard (player1, player2) {
         if (gameBoard[userInput] !== "") {
             console.log("square already used!Choose again");
         }
-        else if (getTurn() !== player.marker && getTurn() !== "") {
-            console.log("Not so fast Dude - it's not your turn!");
-        }
         else {   
         player.marker === 'X' ? gameBoard[userInput] = 'X' : gameBoard[userInput] = '0';
         console.log(gameBoard);
         rules(player);
-        turnCounter(player.marker);
         }
     }
 
@@ -82,35 +80,88 @@ function createGameBoard (player1, player2) {
         }
     }
 
-    return {getGameBoard, playTurn, rules, displayController, turnCounter, getTurn};
+    return {getGameBoard, playTurn, rules, displayController, turnCounter, getPlayerTurn};
 }
 
 const displayGameBoard = (gameBoard) => {
-    console.log(gameBoard);
+
     const board = document.querySelector('.game-board');
+    board.innerHTML = "";
 
     for (let i = 0; i < gameBoard.length; i++) {
         const div = document.createElement('div');
         div.classList.add('square')
+        div.id = i
         div.textContent = gameBoard[i];
         board.appendChild(div);
-        console.log(`I'm new div ${i}`);
     }
 }
 
 
 
-const tom = createPlayer("Tom", 1);
-console.log(tom);
-const soph = createPlayer("Sophie", 2);
-console.log(soph);
+const form = document.querySelector('.player-names');
+form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    console.log('im being run!');
+    const p1 = createPlayer(document.getElementById('player1').value, 1);
+    const p2 = createPlayer(document.getElementById('player2').value, 2);
 
-const newGame = createGameBoard(tom, soph);
+    const goesFirst = Math.random() < 0.5 ? p1: p2; 
+
+    console.log(p1.name);
+    console.log(p2.name);
+    GameController.startNewGame(p1, p2, goesFirst);
+
+    const message = document.querySelector('.messages');
+    message.textContent = `${goesFirst.name} goes first!`;
+
+});
+
+const GameController = (() => {
+    let activeGame;
+
+    const startNewGame = (p1, p2, playerTurn) => {
+        activeGame = createGameBoard(p1, p2, playerTurn);
+        displayGameBoard(activeGame.getGameBoard());
+        return activeGame
+    };
+
+    const getActiveGame = () => activeGame;
+
+    return {startNewGame, getActiveGame};
+})();
+
+const board = document.querySelector('.game-board');
+
+    board.addEventListener('click', (e) => {
+
+        if (e.target.classList.contains('square')) {
+            const index = e.target.id;
+            const activeGame = GameController.getActiveGame();
+            const message = document.querySelector('.messages');
+            if (activeGame.getPlayerTurn().name === "player 1") {
+                message.textContent = "Enter both player names to play!"
+            }
+            else {
+                let player = activeGame.getPlayerTurn();
+                activeGame.playTurn(index, player);
+                activeGame.turnCounter(player); 
+                displayGameBoard(activeGame.getGameBoard());
+                console.log(activeGame.getPlayerTurn());
+            }
+        }
+            
+    })
 
 
-displayGameBoard(newGame.getGameBoard());
+const p1Default = createPlayer("player 1" , 1);
+const p2Default = createPlayer("Player 2", 2);
+
+const setBoard = GameController.startNewGame(p1Default, p2Default, p1Default);
+console.log(GameController.getActiveGame().getPlayerTurn().name)
 
 
 
 
+// change to 'starting player' for argument in startNewGame 
 

@@ -8,7 +8,18 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="header"></div>
+    <div class="header">
+        <div class="title">Noughts and Crosses</div>
+        <form action="" class="player-names">
+            <label for="player1">Player 1</label>
+            <input type="text" id="player1" name="player1" required>
+            <label for="player2">Player 2</label>
+            <input type="text" id="player2" name="player2" required>
+            <button type="submit" class ="play-button">Play!</button>
+        </form>
+        <div class="score-display">SCORE</div>
+        <div class="messages"></div>
+    </div>
     <div class="main">
         <div class="game-board"></div>
     </div>
