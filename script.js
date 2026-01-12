@@ -42,19 +42,24 @@ function createGameBoard (player1, player2, playerTurn) {
     const getGameBoard = () => [...gameBoard];
     const getPlayer1 = () => player1;
     const getPlayer2 = () => player2;
+    let gameStatus = "active";
     
     const goesFirst = (p1, p2) => Math.random() < 0.5 ? p1: p2; 
 
     const setPlayerTurn = (player) => playerTurn = player;
 
+    const setGameStatus = (status) => {
+        if (status === "game over") {
+            gameStatus = "game over"
+        }
+        return gameStatus; 
+    }
 
     const turnCounter = (player) => {
         if (player.marker === "X") {
             playerTurn = player2;
-            displayController({message: `${player2.name}'s go`})
         } else {
             playerTurn = player1;
-            displayController({message: `${player1.name}'s go`})
         }
     }
 
@@ -73,7 +78,6 @@ function createGameBoard (player1, player2, playerTurn) {
 
     const rules = (player) => {
         const board = gameBoard;
-        let message = "";
         
         if ((board[0] === "X" && board[1] === "X" && board[2] === "X")
         ||  (board[3] === "X" && board[4] === "X" && board[5] === "X")
@@ -84,10 +88,10 @@ function createGameBoard (player1, player2, playerTurn) {
         ||  (board[0] === "X" && board[4] === "X" && board[8] === "X") 
         ||  (board[6] === "X" && board[4] === "X" && board[2] === "X")) {
 
-            message = `Game Over! ${player.name} wins!`;
+            
             if (player.marker === 'X') player.giveScore();
-            displayController({player1: getPlayer1(), player2: getPlayer2(), message});
-            GameController.startNewGame(player1, player2, player2);
+            displayController({player1: getPlayer1(), player2: getPlayer2(), message: `Game Over! ${player.name} wins!`});
+            turnCounter(player1);
             return true;  
         } 
 
@@ -100,16 +104,16 @@ function createGameBoard (player1, player2, playerTurn) {
         ||  (board[0] === "0" && board[4] === "0" && board[8] === "0") 
         ||  (board[6] === "0" && board[4] === "0" && board[2] === "0")) {
            
-            message = `Game Over! ${player.name} wins!`;
+            
             if (player.marker === '0') player.giveScore();
-            displayController({player1: getPlayer1(), player2: getPlayer2(), message});
-            GameController.startNewGame(player1, player2, player1);
+            displayController({player1: getPlayer1(), player2: getPlayer2(), message:`Game Over! ${player.name} wins!`});
+            turnCounter(player2);
             return true;
         }
         return false;
     }
 
-    return {getGameBoard, playTurn, rules, turnCounter, getPlayerTurn, getPlayer1, getPlayer2, goesFirst, setPlayerTurn};
+    return {getGameBoard, playTurn, rules, turnCounter, getPlayerTurn, getPlayer1, getPlayer2, goesFirst, setPlayerTurn, setGameStatus};
 }
 
 const displayGameBoard = (gameBoard) => {
@@ -179,15 +183,29 @@ const gameBoardClickListener = (() => {
             const index = e.target.id;
             const activeGame = GameController.getActiveGame();
             const board = activeGame.getGameBoard();
+            const gameStatus = activeGame.setGameStatus()
+            if (gameStatus === "game over") {
+                displayController({message: "Game finished! Press new game for next round"})
+                return;
+            }
+
             if (activeGame.getPlayerTurn().name === "player 1") {
                 displayController({message: "Enter both player names to play!"});
             }
+
             if (board[index] !== "") {
                 displayController({message: "Square already taken!"});
+
             } else {
                 let player = activeGame.getPlayerTurn();
                 const isGameOver = activeGame.playTurn(index, player);
-                if (isGameOver) return;
+                activeGame.turnCounter(player); 
+                displayGameBoard(activeGame.getGameBoard());
+
+                if (isGameOver) {
+                    activeGame.setGameStatus("game over");
+                    return;
+                }
                 const isBoardFull = activeGame.getGameBoard();
                 if (isBoardFull.every(square => square !== "")) {
                     activeGame.turnCounter(player);
@@ -195,14 +213,14 @@ const gameBoardClickListener = (() => {
                     const player2 = activeGame.getPlayer2();
                     player1.giveScore();
                     player2.giveScore();
-                    player = activeGame.getPlayerTurn();
                     displayController({player1, player2, message: "Honourable draw! One point each"})
-                    GameController.startNewGame(player1, player2, player);
+                    activeGame.setGameStatus("game over");
                     return;
+                } else {
+                    const playerTurnName = activeGame.getPlayerTurn().name;
+                    const playerMarker = activeGame.getPlayerTurn().marker;
+                    displayController({message: `${playerTurnName}'s (${playerMarker}) go`});
                 }
-
-                activeGame.turnCounter(player); 
-                displayGameBoard(activeGame.getGameBoard());
                 console.log(activeGame.getPlayerTurn());
             }
         }
@@ -212,18 +230,20 @@ const gameBoardClickListener = (() => {
 
 const newGameClickListener = (() => {
     const button = document.querySelector('.new-game');
-    const message = document.querySelector('.messages');
-    const score = document.querySelector('.score')
-    const inputs = document.querySelectorAll('input');
+    
     button.addEventListener('click', () => {
         console.log("I'm working!");
-        GameController.startNewGame();
-        message.textContent = "";
-        score.textContent = "";
-        inputs.forEach(input => input.value = "");
+        const player1 = GameController.getActiveGame().getPlayer1();
+        const player2 = GameController.getActiveGame().getPlayer2();
+        const turn = GameController.getActiveGame().getPlayerTurn();
+        GameController.startNewGame(player1, player2, turn);
+        displayController({message: `${turn.name} (${turn.marker}) goes first!`})
+        
+        
 
     })
 })();
+
 
 
 console.log(GameController.getActiveGame().getPlayerTurn().name)
