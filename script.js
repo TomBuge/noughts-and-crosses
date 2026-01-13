@@ -13,55 +13,83 @@ function createPlayer(name, playerNumber) {
     return {name, marker, getScore, giveScore,}
 }
 
-const displayController = ({player1, player2, message}) => {
+const screenController = (() => {
+
     const score = document.querySelector(".score");
-    const messageDisplay = document.querySelector(".messages")
-    if (player1 && player2) {
+    const messageDisplay = document.querySelector(".messages");
+    const boardDiv = document.querySelector('.game-board');
+
+    
+
+    const displayScore = (player1, player2) => {
         score.textContent = `${player1.name}: ${player1.getScore()}  ${player2.name}: ${player2.getScore()}` 
         console.log(`${player1.name}: ${player1.getScore()}  ${player2.name}: ${player2.getScore()}`)
-    }
+    };
 
-    messageDisplay.classList.remove('hidden');
-    messageDisplay.textContent = message;
-    setTimeout(() => {
-        messageDisplay.classList.add('hidden');
-    }, 2000);
+
+    const displayMessage = (message) => {
+
+        messageDisplay.classList.remove('hidden');
+        messageDisplay.textContent = message;
+        setTimeout(() => {
+            messageDisplay.classList.add('hidden');
+        }, 2000);
+    };
+
 
     const clearDisplays = () => {
         score.textContent = "";
         messageDisplay.textContent = "";
     }
 
-    return clearDisplays
-}
+        
+    
+
+    const renderGameBoard = (gameBoard) => {
+     
+        boardDiv.innerHTML = "";
+
+        for (let i = 0; i < gameBoard.length; i++) {
+            const div = document.createElement('div');
+            div.classList.add('square')
+            div.id = i
+            div.textContent = gameBoard[i];
+            boardDiv.appendChild(div);
+        }
+    }
+
+    return {renderGameBoard, displayScore, clearDisplays, displayMessage};
+
+})();
 
 
-function createGameBoard (player1, player2, playerTurn) {
+function createGameBoard (player1, player2, player) {
     const gameBoard = [ "", "", "", "", "", "", "", "", ""];
-    const getPlayerTurn = () => playerTurn;
     const getGameBoard = () => [...gameBoard];
     const getPlayer1 = () => player1;
     const getPlayer2 = () => player2;
-    let gameStatus = "active";
+    const players = [player1, player2];
+    let isGameOver = false;
+    let currentPlayerIndex = 0;
     
+    const getIsGameOver = () => isGameOver; 
+
+    const endGame = () => {
+        isGameOver = true; 
+    }
+
     const goesFirst = (p1, p2) => Math.random() < 0.5 ? p1: p2; 
 
-    const setPlayerTurn = (player) => playerTurn = player;
-
-    const setGameStatus = (status) => {
-        if (status === "game over") {
-            gameStatus = "game over"
-        }
-        return gameStatus; 
+    const setActivePlayer = (player) => {
+        currentPlayerIndex = players.indexOf(player);
     }
 
-    const turnCounter = (player) => {
-        if (player.marker === "X") {
-            playerTurn = player2;
-        } else {
-            playerTurn = player1;
-        }
-    }
+
+    const switchTurn = () => {
+        currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
+    };
+
+    const getActivePlayer = () => players[currentPlayerIndex];
 
     
     function playTurn(userInput, player) {
@@ -76,84 +104,56 @@ function createGameBoard (player1, player2, playerTurn) {
         }
     }
 
+    const WIN_COMBINATIONS = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], 
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6] 
+    ]
+
+    const checkWin = (board, marker) => {
+        return WIN_COMBINATIONS.some(combination => {  
+            return combination.every(index => board[index] === marker);
+        });
+    };
+
     const rules = (player) => {
         const board = gameBoard;
+        const marker = player.marker; 
         
-        if ((board[0] === "X" && board[1] === "X" && board[2] === "X")
-        ||  (board[3] === "X" && board[4] === "X" && board[5] === "X")
-        ||  (board[6] === "X" && board[7] === "X" && board[8] === "X") 
-        ||  (board[0] === "X" && board[3] === "X" && board[6] === "X") 
-        ||  (board[1] === "X" && board[4] === "X" && board[7] === "X") 
-        ||  (board[2] === "X" && board[5] === "X" && board[8] === "X") 
-        ||  (board[0] === "X" && board[4] === "X" && board[8] === "X") 
-        ||  (board[6] === "X" && board[4] === "X" && board[2] === "X")) {
-
-            
-            if (player.marker === 'X') player.giveScore();
-            displayController({player1: getPlayer1(), player2: getPlayer2(), message: `Game Over! ${player.name} wins!`});
-            turnCounter(player1);
-            return true;  
-        } 
-
-        if ((board[0] === "0" && board[1] === "0" && board[2] === "0")
-        ||  (board[3] === "0" && board[4] === "0" && board[5] === "0")
-        ||  (board[6] === "0" && board[7] === "0" && board[8] === "0") 
-        ||  (board[0] === "0" && board[3] === "0" && board[6] === "0") 
-        ||  (board[1] === "0" && board[4] === "0" && board[7] === "0") 
-        ||  (board[2] === "0" && board[5] === "0" && board[8] === "0") 
-        ||  (board[0] === "0" && board[4] === "0" && board[8] === "0") 
-        ||  (board[6] === "0" && board[4] === "0" && board[2] === "0")) {
-           
-            
-            if (player.marker === '0') player.giveScore();
-            displayController({player1: getPlayer1(), player2: getPlayer2(), message:`Game Over! ${player.name} wins!`});
-            turnCounter(player2);
-            return true;
+        if (checkWin(board, marker)) {
+            return "win";
         }
-        return false;
-    }
+        if (board.every(square => square !== "")) {
+            return "draw";
+        }
+        return "active"; 
+    } 
 
-    return {getGameBoard, playTurn, rules, turnCounter, getPlayerTurn, getPlayer1, getPlayer2, goesFirst, setPlayerTurn, setGameStatus};
+
+    return {
+        getGameBoard, 
+        playTurn,  
+        getPlayer1, 
+        getPlayer2, 
+        goesFirst, 
+        getActivePlayer, 
+        setActivePlayer,  
+        switchTurn,
+        getIsGameOver,
+        endGame,
+    };
 }
 
-const displayGameBoard = (gameBoard) => {
-    const board = document.querySelector('.game-board');
-    board.innerHTML = "";
-
-    for (let i = 0; i < gameBoard.length; i++) {
-        const div = document.createElement('div');
-        div.classList.add('square')
-        div.id = i
-        div.textContent = gameBoard[i];
-        board.appendChild(div);
-    }
-}
 
 
 
-const form = document.querySelector('.player-names');
-form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    console.log('im being run!');
-    const p1 = createPlayer(document.getElementById('player1').value, 1);
-    const p2 = createPlayer(document.getElementById('player2').value, 2);
-
-    const newGame = GameController.startNewGame(p1, p2, p1);
-    const goesFirst = newGame.goesFirst(p1, p2);
-    newGame.setPlayerTurn(goesFirst);
-
-    console.log(p1.name);
-    console.log(p2.name);
-    
-    displayController({message: `${goesFirst.name} goes first!`});
-
-});
 
 const GameController = (() => {
-    let activeGame;
 
+    let activeGame;
     const p1Default = createPlayer("player 1" , 1);
     const p2Default = createPlayer("Player 2", 2);
+    let isStarted = false;
 
 
     const startNewGame = (p1, p2, playerTurn) => {
@@ -161,92 +161,121 @@ const GameController = (() => {
         const player2 = p2 || p2Default;
         const turn = playerTurn || player1;
         activeGame = createGameBoard(player1, player2, turn);
-        displayGameBoard(activeGame.getGameBoard());
+        screenController.renderGameBoard(activeGame.getGameBoard());
+        isStarted = true; 
         return activeGame
     };
 
     const getActiveGame = () => activeGame;
-
     startNewGame();
+
+    const handleBoardClick = (e) => {
+
+            if (e.target.classList.contains('square')) {
+                const index = e.target.id;
+                const board = activeGame.getGameBoard();
+                const activePlayer = activeGame.getActivePlayer();
+                const isGameOver = activeGame.getIsGameOver();
+                
+
+                if (isGameOver) {
+                    screenController.displayMessage("Game finished! Press new game for next round");
+                    return;
+                }
+
+                if (!isStarted) {
+                    screenController.displayMessage("Enter both player names to play!");
+                    return;
+                }
+
+                if (board[index] !== "") {
+                    screenController.displayMessage("Square already taken!");
+
+                } else {
+
+                    const playerMove = activeGame.playTurn(index, activePlayer);
+                    screenController.renderGameBoard(activeGame.getGameBoard());
+                    const player1 = activeGame.getPlayer1();
+                    const player2 = activeGame.getPlayer2();
+
+                    if (playerMove === "win") {
+                        activePlayer.giveScore();
+                        activeGame.endGame();
+                        screenController.displayScore(player1, player2);
+                        screenController.displayMessage(`Game Over! ${activePlayer.name} wins!`);
+                        activeGame.switchTurn();
+                        return;
+                        }  
+                        
+                    
+                    if (playerMove === "draw") {
+                        player1.giveScore();
+                        player2.giveScore();
+                        activeGame.endGame();
+                        screenController.displayScore(player1, player2);
+                        screenController.displayMessage(`Honourable draw! One point apiece!`);
+                        return;
+                    }
+                    
+                    else {
+                        activeGame.switchTurn();
+                        const nextPlayer = activeGame.getActivePlayer();
+                        screenController.displayMessage(`${nextPlayer.name}'s (${nextPlayer.marker}) go`);
+                    }    
+                }
+            }        
+        };
+
+    const handleNewGameClick = () => {
+            console.log("I'm working!");
+            const player1 = activeGame.getPlayer1();
+            const player2 = activeGame.getPlayer2();
+            const turn = activeGame.getActivePlayer();
+            startNewGame(player1, player2, turn);
+            screenController.displayMessage(`${turn.name} (${turn.marker}) goes first!`);                       
+        };
+
+    const handleFormClick = (e) => {
+            e.preventDefault();
+            console.log('im being run!');
+            const p1 = createPlayer(document.getElementById('player1').value, 1);
+            const p2 = createPlayer(document.getElementById('player2').value, 2);
+
+            const newGame = startNewGame(p1, p2, p1);
+            const goesFirst = newGame.goesFirst(p1, p2);
+            newGame.setActivePlayer(goesFirst);
+
+            console.log(p1.name);
+            console.log(p2.name);
+            
+            screenController.displayMessage(`${goesFirst.name} goes first!`);
+        };
+    
+
+    const init = () => {
+
+        const board = document.querySelector('.game-board');
+        board.addEventListener('click', handleBoardClick)
+        
+       
+        const button = document.querySelector('.new-game');
+        button.addEventListener('click', handleNewGameClick);
+     
+
+        const form = document.querySelector('.player-names');
+        form.addEventListener('submit', handleFormClick);
+    };
+
+    init();
 
     return {startNewGame, getActiveGame};
 })();
 
 
-const gameBoardClickListener = (() => {
-
-    const board = document.querySelector('.game-board');
-
-    board.addEventListener('click', (e) => {
-
-        if (e.target.classList.contains('square')) {
-            const index = e.target.id;
-            const activeGame = GameController.getActiveGame();
-            const board = activeGame.getGameBoard();
-            const gameStatus = activeGame.setGameStatus()
-            if (gameStatus === "game over") {
-                displayController({message: "Game finished! Press new game for next round"})
-                return;
-            }
-
-            if (activeGame.getPlayerTurn().name === "player 1") {
-                displayController({message: "Enter both player names to play!"});
-            }
-
-            if (board[index] !== "") {
-                displayController({message: "Square already taken!"});
-
-            } else {
-                let player = activeGame.getPlayerTurn();
-                const isGameOver = activeGame.playTurn(index, player);
-                activeGame.turnCounter(player); 
-                displayGameBoard(activeGame.getGameBoard());
-
-                if (isGameOver) {
-                    activeGame.setGameStatus("game over");
-                    return;
-                }
-                const isBoardFull = activeGame.getGameBoard();
-                if (isBoardFull.every(square => square !== "")) {
-                    activeGame.turnCounter(player);
-                    const player1 = activeGame.getPlayer1();
-                    const player2 = activeGame.getPlayer2();
-                    player1.giveScore();
-                    player2.giveScore();
-                    displayController({player1, player2, message: "Honourable draw! One point each"})
-                    activeGame.setGameStatus("game over");
-                    return;
-                } else {
-                    const playerTurnName = activeGame.getPlayerTurn().name;
-                    const playerMarker = activeGame.getPlayerTurn().marker;
-                    displayController({message: `${playerTurnName}'s (${playerMarker}) go`});
-                }
-                console.log(activeGame.getPlayerTurn());
-            }
-        }
-            
-    })
-})();
-
-const newGameClickListener = (() => {
-    const button = document.querySelector('.new-game');
-    
-    button.addEventListener('click', () => {
-        console.log("I'm working!");
-        const player1 = GameController.getActiveGame().getPlayer1();
-        const player2 = GameController.getActiveGame().getPlayer2();
-        const turn = GameController.getActiveGame().getPlayerTurn();
-        GameController.startNewGame(player1, player2, turn);
-        displayController({message: `${turn.name} (${turn.marker}) goes first!`})
-        
-        
-
-    })
-})();
 
 
 
-console.log(GameController.getActiveGame().getPlayerTurn().name)
+console.log(GameController.getActiveGame().getActivePlayer().name)
 
 
 
@@ -255,3 +284,9 @@ console.log(GameController.getActiveGame().getPlayerTurn().name)
 // change to 'starting player' for argument in startNewGame 
 
 // look at player name flowing through to playTurn 
+
+    //   displayController({
+    //             player1: getPlayer1(), 
+    //             player2: getPlayer2(), 
+    //             message: `Game Over! ${player.name} wins!`
+    //         });
